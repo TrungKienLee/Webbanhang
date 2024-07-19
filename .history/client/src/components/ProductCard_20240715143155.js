@@ -1,0 +1,1 @@
+ <img src={image} alt="products" className='w-[120px] object-contain p-4' />
