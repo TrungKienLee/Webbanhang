@@ -1,4 +1,0 @@
-const path = {
-    PUBLIC : '/',
-    
-}
