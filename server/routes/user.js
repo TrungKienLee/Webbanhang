@@ -11,8 +11,8 @@ router.post('/refreshtoken', ctrls.refreshAccessToken)
 router.get('/logout', ctrls.logout)
 router.post('/forgotpassword', ctrls.forgotPassword)
 router.put('/resetpassword', ctrls.resetPassword)
-
-
+router.delete("/cart", [verifyAccessToken], ctrls.deleteCart);
+router.delete("/allcart", [verifyAccessToken], ctrls.deleteAllCart);
 
 router.get('/', [verifyAccessToken, isAdmin], ctrls.getUsers)
 router.delete('/', [verifyAccessToken, isAdmin], ctrls.deleteUser)

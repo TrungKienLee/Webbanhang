@@ -1,4 +1,5 @@
 const User = require ('../models/user');
+const Product = require ('../models/product');
 const { generateAccessToken, generateRefreshToken } = require('../middlewares/jwt')
 const asyncHandler = require('express-async-handler');
 const jwt = require('jsonwebtoken');
@@ -243,52 +244,159 @@ const updateUserAddress = asyncHandler(async (req, res) => {
 })
 
 const updateCart = asyncHandler(async (req, res) => {
-    // 
-    const { _id } = req.user
-    const { pid, quantity, color} = req.body
-    if (!pid || !quantity || !color) throw new Error('Missing inputs')
-    const user = await User.findById(_id).select('cart')
-    const alreadyProduct = user?.cart?.find(el => el.product.toString() === pid)
-    if(alreadyProduct){
-        if(alreadyProduct.color === color){
-            const response = await User.updateOne({cart: { $elemMatch : alreadyProduct}}, { $set : {"cart.$.quantity": quantity}}, {new: true})
-            return res.status(200).json({
-            success: response ? true : false,
-            updatedUser: response ? response : 'Some thing went wrong'
-        })
-        }else {
-            const response = await User.findByIdAndUpdate(_id, { $push : {cart :{ product : pid, quantity, color} }}, {new: true})
-        return res.status(200).json({
-            success: response ? true : false,
-            updatedUser: response ? response : 'Some thing went wrong'
-        })}
-    }else {
-        const response = await User.findByIdAndUpdate(_id, { $push : {cart :{ product : pid, quantity, color} }}, {new: true})
-        return res.status(200).json({
-            success: response ? true : false,
-            updatedUser: response ? response : 'Some thing went wrong'
-            })
+     const { _id } = req.user;
+     const { pid, quantity, color } = req.body;
+    console.log(pid, quantity, color);
+     // Kiểm tra dữ liệu đầu vào
+     if (!pid || !quantity || !color) {
+       return res.status(400).json({
+         success: false,
+         message: "Missing inputs",
+       });
+     }
+
+     try {
+       // Tìm sản phẩm theo pid và lấy thông tin màu sắc
+       const product = await Product.findById(pid).select("color.name").select("color.quantity");
+       console.log(product);
+       if (!product) {
+         return res.status(400).json({
+           success: false,
+           message: "Product not found",
+         });
+       }
+
+       // Tìm kiếm màu sắc trong mảng colors
+       const colorInfo = product.color.find(
+         (c) => c.name === color
+       );
+       console.log(colorInfo);
+       if (!colorInfo) {
+         return res.status(400).json({
+           success: false,
+           message: "Color not available for this product",
+         });
+       }
+
+       // Kiểm tra xem số lượng yêu cầu có nhỏ hơn hoặc bằng số lượng có trong kho không
+       if (quantity > colorInfo.quantity) {
+         return res.status(400).json({
+           success: false,
+           message: "Requested quantity exceeds available stock",
+         });
+       }
+
+       // Tìm người dùng và kiểm tra giỏ hàng
+       const user = await User.findById(_id).select("cart");
+       const alreadyProductIndex = user?.cart?.findIndex(
+         (el) => el.product.toString() === pid && el.color === color
+       );
+
+       if (alreadyProductIndex !== -1) {
+         // Khi sản phẩm đã có trong giỏ hàng và trùng màu
+         const existingProduct = user.cart[alreadyProductIndex];
+         // Cập nhật số lượng sản phẩm trong giỏ hàng
+         const updateResponse = await User.findByIdAndUpdate(
+           _id,
+           { $set: { "cart.$[elem].quantity": quantity } },
+           {
+             arrayFilters: [{ "elem.product": pid, "elem.color": color }],
+             new: true,
+           }
+         );
+         return res.status(200).json({
+           success: !!updateResponse,
+           updatedUser: updateResponse || "Something went wrong",
+         });
+       } else {
+         // Khi sản phẩm chưa có trong giỏ hàng hoặc màu khác
+         const updatedUser = await User.findByIdAndUpdate(
+           _id,
+           { $push: { cart: { product: pid, quantity, color } } },
+           { new: true }
+         );
+
+         return res.status(200).json({
+           success: !!updatedUser,
+           updatedUser: updatedUser || "Something went wrong",
+         });
+       }
+     } catch (error) {
+       return res.status(500).json({
+         success: false,
+         message: "Internal server error",
+         error: error.message,
+       });
+     }
+
+});
+
+const deleteCart = asyncHandler(async (req, res) => {
+  const { _id } = req.user;
+  const { pid, color } = req.body;
+
+  // Kiểm tra dữ liệu đầu vào
+  if (!pid || !color) {
+    return res.status(400).json({
+      success: false,
+      message: "Missing product ID or color",
+    });
+  }
+
+  try {
+    // Tìm và cập nhật người dùng bằng cách xóa sản phẩm khỏi giỏ hàng
+    const updateResponse = await User.updateOne(
+      { _id, "cart.product": pid, "cart.color": color },
+      { $pull: { cart: { product: pid, color } } }
+    );
+
+    if (updateResponse.modifiedCount === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Product with the specified color not found in cart",
+      });
     }
- 
-   
-})
+
+    return res.status(200).json({
+      success: true,
+      message: "Product removed from cart successfully",
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+});
+
+const deleteAllCart = asyncHandler(async (req, res) => {
+  const { _id } = req.user;
+  const userCart = await User.findById(_id);
+  userCart.cart = [];
+  await userCart.save();
+  return res.status(200).json({
+    success: userCart ? true : false,
+    deleteCart: userCart ? userCart : "Lỗi xóa sản phẩm",
+  });
+});
+
 
 module.exports = {
-    register,
-    login,
-    getCurrent,
-    refreshAccessToken,
-    logout,
-    forgotPassword,
-    getUsers,
-    deleteUser,
-    updateUser,
-    updateUserByAdmin,
-    updateUserAddress,
-    updateCart,
-    resetPassword,
-    finalRegister,
-    
-
-
-}
+  register,
+  login,
+  getCurrent,
+  refreshAccessToken,
+  logout,
+  forgotPassword,
+  getUsers,
+  deleteUser,
+  updateUser,
+  updateUserByAdmin,
+  updateUserAddress,
+  updateCart,
+  resetPassword,
+  finalRegister,
+  deleteCart,
+  deleteAllCart,
+};

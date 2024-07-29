@@ -1,67 +1,74 @@
 const mongoose = require('mongoose'); // Erase if already required
 
 // Declare the Schema of the Mongo model
-var productSchema = new mongoose.Schema({
+var productSchema = new mongoose.Schema(
+  {
     title: {
-        type: String,
-        required: true,
-        trim: true , //Bỏ dấu cách ở 2 đầu
+      type: String,
+      required: true,
+      trim: true, //Bỏ dấu cách ở 2 đầu
     },
     slug: {
-        type: String,
-        required: true,
-        // unique: true,
-        lowercase: true
+      type: String,
+      required: true,
+      // unique: true,
+      lowercase: true,
     },
     description: {
-        type: Array,
-        required: true,
+      type: Array,
+      required: true,
     },
     brand: {
-        type: String,
-        required: true
+      type: String,
+      required: true,
     },
     thumb: {
-        type: String,
-        required: true
+      type: String,
+      required: true,
     },
     price: {
-        type: Number,
-        required: true
+      type: Number,
+      required: true,
     },
     category: {
       type: String,
       required: true,
     },
-    quantity: {
-        type: Number,
-        default: 0
-    },
     sold: {
-        type: Number,
-        default: 0
+      type: Number,
+      default: 0,
     },
-    images: {   
-        type: Array
+    images: {
+      type: Array,
     },
-    color: [{
-      type: String,
-      require: true,
-    }],
+    color: [
+      {
+        name: {
+          type: String,
+          required: true,
+        },
+        quantity: {
+          type: Number,
+          required: true,
+        },
+      },
+    ],
     ratings: [
-        {
-            star: { type: Number },
-            postedBy: { type: mongoose.Types.ObjectId, ref: 'User' },
-            comment: { type: String }
-        }
+      {
+        star: { type: Number },
+        postedBy: { type: mongoose.Types.ObjectId, ref: "User" },
+        comment: { type: String },
+      },
     ],
     totalRatings: {
-        type: Number,
-        default: 0
-    }
-}, {
-    timestamps: true
-});
+      type: Number,
+      default: 0,
+    },
+  },
+  {
+    timestamps: true,
+  }
+);
 
 //Export the model
 module.exports = mongoose.model('Product', productSchema);               

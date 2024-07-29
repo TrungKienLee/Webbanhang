@@ -7,7 +7,12 @@ var productCategorySchema = new mongoose.Schema({
         unique: true,
         index: true
         
-    }
+    },
+    isActive:{
+        type: Boolean, 
+        default : true
+    },
+
 }, {
     timestamps: true
 });

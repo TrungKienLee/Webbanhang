@@ -6,7 +6,7 @@ const FlashSale = require("../models/flashSale")
 const createNewOrder = asyncHandler(async (req, res) => {
   const { _id } = req.user;
   const { coupon } = req.body;
-
+  
   // Lấy giỏ hàng của người dùng và thông tin sản phẩm
   const userCart = await User.findById(_id)
     .select("cart")
