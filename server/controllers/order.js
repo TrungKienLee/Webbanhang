@@ -1,86 +1,141 @@
-const Order = require ('../models/order')
-const User = require ('../models/user')
-const Coupon = require('../models/coupon')
-const asyncHandler= require('express-async-handler') 
+const Order = require("../models/order");
+const User = require("../models/user");
+const Coupon = require("../models/coupon");
+const asyncHandler = require("express-async-handler");
+const FlashSale = require("../models/flashSale")
+const createNewOrder = asyncHandler(async (req, res) => {
+  const { _id } = req.user;
+  const { coupon } = req.body;
 
-const createNewOrder = asyncHandler(async(req,res)=>{
-    const { _id} = req.user
-    const {coupon} = req.body
-    
-    const userCart = await User.findById(_id).select('cart').populate('cart.product', 'title price')
-    const products = userCart?.cart?.map(el => ({
-        product : el.product._id,
-        count : el.quantity,
-        color : el.color 
+  // Lấy giỏ hàng của người dùng và thông tin sản phẩm
+  const userCart = await User.findById(_id)
+    .select("cart")
+    .populate("cart.product", "title price");
+  const products = userCart?.cart?.map((el) => ({
+    product: el.product._id,
+    count: el.quantity,
+    color: el.color,
+  }));
 
+  let total = 0;
+  const now = new Date();
 
-    }))
-    let total = userCart?.cart?.reduce((sum,el) => el.product.price *el.quantity + sum,0)
-    const createData = {products,total, orderBy: _id}
-    if(coupon) {
-        const selectedCoupon = await Coupon.findById(coupon)
-        total = Math.round(total*(1- +selectedCoupon?.discount/100)/1000)*1000 || total
-        createData.total = total
-        createData.coupon = coupon
+  // Kiểm tra và áp dụng giá flash sale nếu có
+  for (let item of userCart.cart) {
+    const flashSale = await FlashSale.findOne({
+      "products.productId": item.product._id,
+      startTime: { $lte: now },
+      endTime: { $gte: now },
+    });
+
+    if (flashSale) {
+      const flashSaleProduct = flashSale.products.find((p) =>
+        p.productId.equals(item.product._id)
+      );
+      if (flashSaleProduct) {
+        // Kiểm tra số lượng flash sale
+        if (item.quantity > flashSaleProduct.flashSaleQuantity) {
+          return res.json({
+            success: false,
+            message:
+              "Flash sale quantity exceeded for product " + item.product.title,
+          });
+        }
+        // Tính giá sau khi áp dụng chiết khấu flash sale
+        const discountedPrice =
+          item.product.price * (1 - flashSaleProduct.discount / 100);
+        total += discountedPrice * item.quantity;
+        continue;
+      }
     }
-    const rs = await Order.create(createData)
 
-    return res.json({
-        success: rs ? true: false,
-        rs: rs ? rs : 'Something went wrong',
-        
-    })
-})
+    // Tính giá bình thường nếu không có flash sale
+    total += item.product.price * item.quantity;
+  }
 
+  const createData = { products, total, orderBy: _id };
 
-const updateStatus = asyncHandler(async(req,res)=>{
-   
-    const { oid} = req.params
-    const {status} = req.body
-    if (!status) throw new Error ('Missing status')
-    const response = await Order.findByIdAndUpdate(oid, {status}, {new: true})
-       
-   
-    return res.json({
-        success: response ? true: false,
-        response: response ? response : 'Something went wrong',
-        
-    })
-})
+  if (coupon) {
+    const selectedCoupon = await Coupon.findById(coupon);
+    total = Math.round((total * (1 - +selectedCoupon?.discount / 100)) / 1000) *  1000 || total;
+    createData.total = total;
+    createData.coupon = coupon;
+  }
 
-const getUserOrder = asyncHandler(async(req,res)=>{
-   
-    const { _id} = req.user
-    
-    const response = await Order.find({orderBy: _id})
-       
-   
-    return res.json({
-        success: response ? true: false,
-        response: response ? response : 'Something went wrong',
-        
-    })
-})
-const getOrders = asyncHandler(async(req,res)=>{
-   
-  
-    
-    const response = await Order.find()
-       
-   
-    return res.json({
-        success: response ? true: false,
-        response: response ? response : 'Something went wrong',
-        
-    })
-})
+  const rs = await Order.create(createData);
+
+  return res.json({
+    success: rs ? true : false,
+    rs: rs ? rs : "Something went wrong",
+  });
+});
+
+// const createNewOrder = asyncHandler(async(req,res)=>{
+//     const { _id} = req.user
+//     const {coupon} = req.body
+
+//     const userCart = await User.findById(_id).select('cart').populate('cart.product', 'title price')
+//     const products = userCart?.cart?.map(el => ({
+//         product : el.product._id,
+//         count : el.quantity,
+//         color : el.color
+
+//     }))
+//     let total = userCart?.cart?.reduce((sum,el) => el.product.price *el.quantity + sum,0)
+//     const createData = {products,total, orderBy: _id}
+//     if(coupon) {
+//         const selectedCoupon = await Coupon.findById(coupon)
+//         total = Math.round(total*(1- +selectedCoupon?.discount/100)/1000)*1000 || total
+//         createData.total = total
+//         createData.coupon = coupon
+//     }
+//     const rs = await Order.create(createData)
+
+//     return res.json({
+//         success: rs ? true: false,
+//         rs: rs ? rs : 'Something went wrong',
+
+//     })
+// })
+
+const updateStatus = asyncHandler(async (req, res) => {
+  const { oid } = req.params;
+  const { status } = req.body;
+  if (!status) throw new Error("Missing status");
+  const response = await Order.findByIdAndUpdate(
+    oid,
+    { status },
+    { new: true }
+  );
+
+  return res.json({
+    success: response ? true : false,
+    response: response ? response : "Something went wrong",
+  });
+});
+
+const getUserOrder = asyncHandler(async (req, res) => {
+  const { _id } = req.user;
+
+  const response = await Order.find({ orderBy: _id });
+
+  return res.json({
+    success: response ? true : false,
+    response: response ? response : "Something went wrong",
+  });
+});
+const getOrders = asyncHandler(async (req, res) => {
+  const response = await Order.find();
+
+  return res.json({
+    success: response ? true : false,
+    response: response ? response : "Something went wrong",
+  });
+});
 
 module.exports = {
-    createNewOrder,
-    updateStatus,
-    getUserOrder,
-    getOrders,
-    
-
-
-}
+  createNewOrder,
+  updateStatus,
+  getUserOrder,
+  getOrders,
+};

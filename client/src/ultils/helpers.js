@@ -32,3 +32,17 @@ export function secondsToHms(d) {
   const s = Math.floor((d % 3600) % 60);
   return { h, m, s };
 }
+export const validate = (payload, setInvalidFieds) => {
+  let invalids = 0;
+  const formatPayload = Object.entries(payload);
+  // console.log(formatPayload);
+  for (let arr of formatPayload) {
+    if (arr[1].trim() === "") {
+      invalids++;
+      setInvalidFieds((prev) => [
+        ...prev,
+        { name: arr[0], mes: "Trường này yêu cầu bắt buộc!." },
+      ]);
+    }
+  }
+}

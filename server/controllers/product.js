@@ -3,14 +3,21 @@ const asyncHandler = require('express-async-handler')
 const slugify = require('slugify')
 
 const createProduct = asyncHandler(async (req, res) => {
-    if (Object.keys(req.body).length === 0) throw new Error('Missing inputs')
-    if (req.body && req.body.title) req.body.slug = slugify(req.body.title)
+    
+    if (Object.keys(req.body).length === 0 || !req.files['thumb'] || !req.files['images']) throw new Error('Missing inputs')
+    if (req.body && req.body.title) {
+        req.body.slug = slugify(req.body.title)
+    }
+    req.body.thumb = req.files['thumb'][0].path;
+    req.body.images = req.files['images'].map((file) => file.path); // or filenames if you're saving the files to disk
     const newProduct = await Product.create(req.body)
     return res.status(200).json({
         success: newProduct ? true : false,
-        createdProduct: newProduct ? newProduct : 'Cannot create new product'
+        createProduct: newProduct ? newProduct : 'Cannot create new product'
     })
+    
 })
+
 const getProduct = asyncHandler(async (req, res) => {
     const { pid } = req.params
     const product = await Product.findById(pid)
@@ -226,16 +233,7 @@ const uploadImagesProduct = asyncHandler(async(req, res)=>{
     })
     
 })
-const uploadThumbProduct = asyncHandler(async(req, res)=>{
-    const { pid} = req.params
-    if(!req.files) throw new Error ('Missing inputs')
-    const response = await Product.findByIdAndUpdate(pid, {$push:{image : { $each: req.files.map(el => el.path)} }} )
-    return res.status(200).json({
-        status : response ? true : false,
-        updatedProduct : response ? response : 'Cannot upload thumb product'
-    })
-    
-})
+
 
 module.exports = {
     createProduct,
@@ -245,6 +243,6 @@ module.exports = {
     deleteProduct,
     ratings,
     uploadImagesProduct,
-    uploadThumbProduct,
+   
 
 }

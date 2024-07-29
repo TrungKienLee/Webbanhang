@@ -93,7 +93,7 @@ const login = asyncHandler(async (req, res) => {
     } else {
         throw new Error('Invalid credentials!')
     }
-})
+})  
 const getCurrent = asyncHandler(async(req, res)=> {
     const { _id} =req.user
     
@@ -244,7 +244,6 @@ const updateUserAddress = asyncHandler(async (req, res) => {
 
 const updateCart = asyncHandler(async (req, res) => {
     // 
-    console.log('oke')
     const { _id } = req.user
     const { pid, quantity, color} = req.body
     if (!pid || !quantity || !color) throw new Error('Missing inputs')

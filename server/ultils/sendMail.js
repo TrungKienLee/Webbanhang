@@ -16,7 +16,7 @@ const sendMail = asyncHandler(async ({email, html, subject}) => {
       // async..await is not allowed in global scope, must use a wrapper
         // send mail with defined transport object
         let info = await transporter.sendMail({
-          from: '"CuahangMERNSTACKS 👻" <no-reply@cuahangMERNSTACK.com>', // sender address
+          from: '"Cuahangdientu" <no-reply@cuahangdientu.com>', // sender address
           to: email, // list of receivers
           subject: subject, // Subject line
         //   text: "Hello world?", // plain text body

@@ -5,16 +5,16 @@ var productSchema = new mongoose.Schema({
     title: {
         type: String,
         required: true,
-        trim: true
+        trim: true , //Bỏ dấu cách ở 2 đầu
     },
     slug: {
         type: String,
         required: true,
-        unique: true,
+        // unique: true,
         lowercase: true
     },
     description: {
-        type: String,
+        type: Array,
         required: true,
     },
     brand: {
@@ -30,8 +30,8 @@ var productSchema = new mongoose.Schema({
         required: true
     },
     category: {
-        type: mongoose.Types.ObjectId,
-        ref: 'Category'
+      type: String,
+      required: true,
     },
     quantity: {
         type: Number,
@@ -44,10 +44,10 @@ var productSchema = new mongoose.Schema({
     images: {   
         type: Array
     },
-    color: {
-        type: String,
-        enum: ['Black', 'Grown', 'Red']
-    },
+    color: [{
+      type: String,
+      require: true,
+    }],
     ratings: [
         {
             star: { type: Number },

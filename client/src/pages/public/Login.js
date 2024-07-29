@@ -7,6 +7,7 @@ import path from '../../ultils/path';
 import { login } from '../../store/user/userSlice';
 import { useDispatch } from 'react-redux';
 import {toast} from 'react-toastify'
+import { validate } from '../../ultils/helpers';
 const Login = () => {
     const navigate = useNavigate();
     const dispatch = useDispatch();
@@ -43,6 +44,7 @@ const Login = () => {
            toast.info(response.mes, {theme: 'colored'})
         }
     };
+
 
     const handleSubmit = useCallback(async () => {
         const { firstname, lastname, mobile, ...data } = payload;

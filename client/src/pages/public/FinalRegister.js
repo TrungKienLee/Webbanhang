@@ -16,7 +16,7 @@ const FinalRegister = () => {
         })
     }, [])
     return (
-        <div className='h-screen w-screen bg-gray-100'>erertertretert</div>
+        <div className='h-screen w-screen bg-gray-100'>abcd</div>
     )
 }
 
